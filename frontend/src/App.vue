@@ -28,6 +28,12 @@
             {{ msg.text }}
           </div>
         </div>
+
+        <div v-if="isTyping" class="flex justify-start">
+          <div class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg max-w-xs italic animate-pulse">
+            Gemini is thinking...
+          </div>
+        </div>
       </div>
 
       <form @submit.prevent="sendMessage" class="flex border-t border-gray-200">
@@ -56,31 +62,41 @@ export default {
     return {
       input: '',
       messages: [],
+      isTyping: false,
     };
   },
   methods: {
     async sendMessage() {
-      if (!this.input.trim()) return;
+      const message = this.input.trim();
+      if (!message) return;
 
-      this.messages.push({ sender: 'user', text: this.input });
-      const userMsg = this.input;
+      this.messages.push({ sender: 'user', text: message });
       this.input = '';
+      this.isTyping = true;
+
+      const context = this.messages.map((msg) => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      }));
 
       try {
         const res = await axios.post('http://localhost:3000/api/chat', {
-          message: userMsg,
+          contents: context,
         });
+
         this.messages.push({ sender: 'bot', text: res.data.reply });
       } catch (error) {
         this.messages.push({
           sender: 'bot',
           text: 'Error fetching response.',
         });
-      }
+      } finally {
+        this.isTyping = false;
 
-      this.$nextTick(() => {
-        this.$refs.chatArea.scrollTop = this.$refs.chatArea.scrollHeight;
-      });
+        this.$nextTick(() => {
+          this.$refs.chatArea.scrollTop = this.$refs.chatArea.scrollHeight;
+        });
+      }
     },
   },
 };
