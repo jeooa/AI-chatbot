@@ -20,7 +20,13 @@ router.post('/', async (req, res) => {
         );
 
         let botReply = response.data.candidates[0].content.parts[0].text || '';
-        botReply = botReply.replace(/^\*\s?/gm, '').trim();
+
+        botReply = botReply
+            .replace(/\*\*(.*?)\*\*/g, '$1')     // remove bold formatting **text**
+            .replace(/^\*\s+/gm, '')             // remove bullet points (start of lines)
+            .replace(/\n\*\s+/g, '\n')           // remove mid-line bullets
+            .replace(/(\n\s*){3,}/g, '\n\n')     // prevent triple line breaks
+            .trim();
 
         res.json({ reply: botReply });
     } catch (error) {
